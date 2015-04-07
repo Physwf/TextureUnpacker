@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					   xmlns:s="library://ns.adobe.com/flex/spark" 
+					   xmlns:mx="library://ns.adobe.com/flex/mx"
+					   width="450"
+					   height="190">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+		
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import mx.graphics.codec.PNGEncoder;
+			
+//			private var mInputPngPath:String = "D:/qylei-PSHAENGDESK027-easl/webapps/pogo/htdocs/applet/images/freebingo/all.png";
+//			private var mInputXMLPath:String = "D:/qylei-PSHAENGDESK027-easl/webapps/pogo/htdocs/applet/images/freebingo/all.xml";
+//			private var mOutPutDir:String = "D:/qylei-PSHAENGDESK027-easl/pogo/games/freebingo/asset/freebingo/all/";
+			
+			private var mInputPngPath:String = "D:/qylei-PSHAENGDESK027-easl/webapps/pogo/htdocs/applet/images/freebingo/en_US.png";
+			private var mInputXMLPath:String = "D:/qylei-PSHAENGDESK027-easl/webapps/pogo/htdocs/applet/images/freebingo/en_US.xml";
+			private var mOutPutDir:String = "D:/qylei-PSHAENGDESK027-easl/pogo/games/freebingo/asset/freebingo/en_US/";
+			
+			private var mInputPng:BitmapData;
+			private var mInputXML:XML;
+			
+			private var mFile:File = new File();
+			
+			private function browseTexture():void
+			{
+				mFile.browse([new FileFilter("Image","*.png")]);
+				mFile.addEventListener(Event.SELECT,onTextureSelected);
+			}
+			
+			private function onTextureSelected(e:Event):void
+			{
+				mFile.removeEventListener(Event.SELECT,onTextureSelected);
+				mInputPngPath = InputTexture.text = mFile.url;
+			}
+			
+			private function browseXML():void
+			{
+				mFile.browse([new FileFilter("XML","*.xml","*.plist")]);
+				mFile.addEventListener(Event.SELECT,onXMLSelected);
+			}
+			
+			private function onXMLSelected(e:Event):void
+			{
+				mFile.removeEventListener(Event.SELECT,onXMLSelected);
+				mInputXMLPath = InputXML.text = mFile.url;
+			}
+			
+			private function browseOutput():void
+			{
+				mFile.browseForDirectory("Select");
+				mFile.addEventListener(Event.SELECT,onOutputSeleted);
+			}
+			
+			private function onOutputSeleted(e:Event):void
+			{
+				mFile.removeEventListener(Event.SELECT,onOutputSeleted);
+				mOutPutDir = OutputDir.text = mFile.url + "/";
+			}
+			
+			public function excute():void
+			{
+				var pngLoader:Loader = new Loader();
+				pngLoader.contentLoaderInfo.addEventListener(Event.COMPLETE,onTextureLoaded);
+				pngLoader.load(new URLRequest(mInputPngPath));
+			}
+			
+			private function onTextureLoaded(e:Event):void
+			{
+				var texture:Bitmap = e.target.content as Bitmap;
+				(e.target as LoaderInfo).removeEventListener(Event.COMPLETE,onTextureLoaded);
+				mInputPng = texture.bitmapData;
+				
+				var xmlLoader:URLLoader = new URLLoader();
+				xmlLoader.addEventListener(Event.COMPLETE,onXMLComplete);
+				xmlLoader.load(new URLRequest(mInputXMLPath));
+			}
+			
+			private function onXMLComplete(e:Event):void
+			{
+				(e.target as URLLoader).removeEventListener(Event.COMPLETE,onXMLComplete);
+				mInputXML = XML(e.target.data);
+				unpack();
+			}
+			
+			private function unpack():void
+			{
+				for each( var sub:XML in mInputXML.SubTexture)
+				{
+					var name:String = sub.@name;
+					var x:int = parseInt(sub.@x);
+					var y:int = parseInt(sub.@y);
+					var width:int = parseInt(sub.@width);
+					var height:int = parseInt(sub.@height);
+					var bitmapData:BitmapData = new BitmapData(width,height,true,0);
+					bitmapData.copyPixels(mInputPng,new Rectangle(x,y,width,height),new Point);
+					var encoder:PNGEncoder = new PNGEncoder();
+					var data:ByteArray = encoder.encode(bitmapData);
+					var file:File = new File(mOutPutDir + name + ".png");
+					var fs:FileStream = new FileStream();
+					fs.open(file,FileMode.WRITE);
+					fs.writeBytes(data);
+					fs.close();
+				}
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		
+	</fx:Declarations>
+
+	
+<s:Group>
+	<s:layout>
+		<s:VerticalLayout/>
+	</s:layout>
+	<s:Group>
+		<s:layout>
+			<s:HorizontalLayout paddingTop="10" paddingLeft="10"/>
+		</s:layout>
+		<s:Label text="Texture:" paddingTop="5" width="50"/>
+		<s:TextInput id="InputTexture" width="300"/> 
+		<s:Button id="TextureBrowse" click="browseTexture()" label="Browse"/>
+	</s:Group>
+	<s:Group>
+		<s:layout>
+			<s:HorizontalLayout paddingTop="10" paddingLeft="10"/>
+		</s:layout>
+		<s:Label text="XML:" paddingTop="5" width="50"/>
+		<s:TextInput id="InputXML" width="300"/> 
+		<s:Button id="XMLBrowse" click="browseXML()" label="Browse"/>
+	</s:Group>
+	<s:Group>
+		<s:layout>
+			<s:HorizontalLayout paddingTop="10" paddingLeft="10"/>
+		</s:layout>
+		<s:Label text="Output:" paddingTop="5" width="50"/>
+		<s:TextInput id="OutputDir" width="300"/> 
+		<s:Button id="OutputDirBrowse" click="browseOutput()" label="Browse"/>
+	</s:Group>
+	<s:Group>
+		<s:layout>
+			<s:HorizontalLayout paddingTop="10" paddingLeft="200" horizontalAlign="center" />
+		</s:layout>
+		<s:Button label="Unpack" click="excute()"/>
+	</s:Group>
+</s:Group>
+
+		
+</s:WindowedApplication>
